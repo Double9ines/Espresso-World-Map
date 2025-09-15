@@ -166,17 +166,24 @@
         const tileCandidates = [
             { url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opts:{ maxZoom: 18 } },
             { url:'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', opts:{ maxZoom: 18 } },
+            { url:'https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', opts:{ maxZoom: 18 } },
             { url:'https://stamen-tiles.a.ssl.fastly.net/terrain/{z}/{x}/{y}.jpg', opts:{ maxZoom: 18 } }
         ];
-        let tileIdx = 0; let tileLayer;
+        let tileIdx = 0; let tileLayer; let recentErrors = 0; let errorTimer;
+        const transparentPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
         function loadTiles() {
             if (tileLayer) { map.removeLayer(tileLayer); }
             const t = tileCandidates[tileIdx];
-            tileLayer = L.tileLayer(t.url, t.opts);
+            tileLayer = L.tileLayer(t.url, Object.assign({ errorTileUrl: transparentPng, updateWhenIdle: true, keepBuffer: 2 }, t.opts));
             tileLayer.on('load', () => { loadingEl.style.display = 'none'; });
             tileLayer.on('tileerror', () => {
-                tileIdx++;
-                if (tileIdx < tileCandidates.length) loadTiles();
+                recentErrors++;
+                clearTimeout(errorTimer);
+                errorTimer = setTimeout(() => { recentErrors = 0; }, 1500);
+                if (recentErrors >= 4) {
+                    recentErrors = 0; tileIdx++;
+                    if (tileIdx < tileCandidates.length) loadTiles();
+                }
             });
             tileLayer.addTo(map);
         }
@@ -276,7 +283,9 @@
         }
 
         // On resize, reposition markers and magnifier
-        window.addEventListener('resize', () => { map.invalidateSize(); });
+        window.addEventListener('resize', () => { setTimeout(()=>map.invalidateSize(true), 50); });
+        // Invalidate after dropdown open (in case it overlaps)
+        document.getElementById('eventsToggle').addEventListener('click', ()=> setTimeout(()=>map.invalidateSize(true), 150));
         map.on('move', () => {
             // keep magnifier centered above the last set position visually during move
             // no-op; Leaflet updates tiles beneath
