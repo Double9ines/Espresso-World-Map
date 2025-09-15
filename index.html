@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-7Ih0jWzVt6jZ7b5bqz4wz5wR9V5z9zvZ9z9z9z9z9z9z9z9z9z9z9z9z9z9z" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-o9N1j7kGZb+3kG8a9kaGb0G3FScYxwZ1Z8RxtwGv7Xk=" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     <style>
         * {
             margin: 0;
@@ -38,7 +40,7 @@
         
         .container { z-index: 1; max-width: 1200px; width: 100%; display: flex; flex-direction: column; align-items: center; }
         
-        header { text-align: center; margin-bottom: 18px; width: 100%; }
+        header { text-align: center; margin-bottom: 24px; width: 100%; }
         
         h1 { font-size: 2.6rem; margin-bottom: 10px; color: #e0c8a9; text-shadow: 0 0 10px rgba(224, 200, 169, 0.5); letter-spacing: 2px; }
         .subtitle { font-size: 1.1rem; color: #b89f7e; max-width: 700px; margin: 0 auto 12px; }
@@ -51,18 +53,19 @@
             border: 1px solid #c9b29b;
             box-shadow: 0 8px 24px rgba(0,0,0,0.3);
             border-radius: 12px;
-            padding: 8px 10px;
+            padding: 10px;
             display: flex;
+            flex-direction: column;
             gap: 8px;
-            align-items: center;
+            align-items: stretch;
             z-index: 3;
         }
-        .top-menu .title { color: #6b4a2d; font-weight: 600; margin-right: 4px; font-size: 0.9rem; }
-        .top-menu select { background: #fff; border: 1px solid #c9b29b; color: #6b4a2d; border-radius: 8px; padding: 6px 8px; min-width: 160px; outline: none; font-size: 0.9rem; }
+        .top-menu .title { color: #6b4a2d; font-weight: 600; margin-right: 0; font-size: 0.9rem; }
+        .top-menu select { background: #fff; border: 1px solid #c9b29b; color: #6b4a2d; border-radius: 8px; padding: 6px 8px; min-width: 200px; outline: none; font-size: 0.9rem; }
         .top-menu .badge { background: #6b4a2d; color: #fff; border-radius: 16px; padding: 3px 6px; font-size: 0.7rem; margin-left: 4px; }
         .top-menu .badge.past { background:#b58257; }
         
-        .map-container { width: 100%; height: 560px; background: rgba(20,15,15,0.55); border-radius: 12px; position: relative; overflow: hidden; border: 1px solid #3a2c2c; box-shadow: 0 12px 40px rgba(0,0,0,0.5); margin-top: 8px; }
+        .map-container { width: 100%; height: 560px; background: rgba(20,15,15,0.55); border-radius: 12px; position: relative; overflow: hidden; border: 1px solid #3a2c2c; box-shadow: 0 12px 40px rgba(0,0,0,0.5); margin-top: 24px; }
         #leafletMap { position: absolute; inset: 0; }
         .map-brand { position: absolute; left: 14px; bottom: 12px; display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); z-index: 2; }
         .map-brand img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
@@ -120,12 +123,17 @@
                 </select>
                 <span class="badge past">Past</span>
             </div>
+            <div>
+                <label for="stopsSelect" class="sr-only">Nearest Bus Stops</label>
+                <select id="stopsSelect">
+                    <option value="">Nearest Bus Stops...</option>
+                </select>
+            </div>
         </div>
 
         <div class="map-container" id="map">
             <div id="leafletMap"></div>
             <div class="magnifier" id="magnifier"></div>
-            <div class="hand"><img src="https://cdn-icons-png.flaticon.com/512/4360/4360154.png" alt="hand holding"></div>
             <div class="map-brand"><img src="espresso.png" alt="Espresso logo"><span>Espresso</span></div>
         </div>
 
@@ -224,6 +232,19 @@
             maxZoom: 19
         }).addTo(map);
         map.setView([20, 0], 2);
+        // Geocoder (search box)
+        L.Control.geocoder({ defaultMarkGeocode: false }).on('markgeocode', function(e) {
+            const c = e.geocode.center; map.flyTo(c, 14);
+        }).addTo(map);
+        // Locate (user location)
+        const locateBtn = L.control({position:'topleft'});
+        locateBtn.onAdd = function(){
+            const div = L.DomUtil.create('div','leaflet-bar');
+            const a = L.DomUtil.create('a','',div); a.href='#'; a.title='Locate me'; a.innerHTML='📍'; a.style.textDecoration='none'; a.style.padding='0 6px';
+            L.DomEvent.on(a,'click',function(ev){ L.DomEvent.stop(ev); map.locate({setView:true, maxZoom:15}); });
+            return div;
+        };
+        locateBtn.addTo(map);
 
         // Populate dropdowns
         const futureSelect = document.getElementById('futureSelect');
@@ -238,6 +259,11 @@
         });
         futureSelect.addEventListener('change', onSelect);
         pastSelect.addEventListener('change', onSelect);
+        const stopsSelect = document.getElementById('stopsSelect');
+        stopsSelect.addEventListener('change', (e) => {
+            const val = e.target.value; if (!val) return; const [lat,lng] = val.split(',').map(parseFloat);
+            map.flyTo([lat,lng], 17);
+        });
 
         // Create markers as Leaflet markers with custom divIcons
         const markers = [];
@@ -264,6 +290,18 @@
                 magnifier.style.left = point.x + 'px';
                 magnifier.style.top = point.y + 'px';
             }, 400);
+            // Load nearby bus stops into dropdown using Overpass
+            fetch(`https://overpass-api.de/api/interpreter?data=[out:json];node(around:1200,${lat},${lng})[highway=bus_stop];out;`)
+                .then(r=>r.json()).then(json => {
+                    stopsSelect.innerHTML = '<option value="">Nearest Bus Stops...</option>';
+                    json.elements.slice(0,20).forEach(n => {
+                        const name = (n.tags && (n.tags.name || n.tags['name:en'])) || 'Bus Stop';
+                        const opt = document.createElement('option');
+                        opt.value = `${n.lat},${n.lon}`;
+                        opt.textContent = `${name}`;
+                        stopsSelect.appendChild(opt);
+                    });
+                }).catch(()=>{ /* ignore errors silently */ });
         }
 
         // Initialize magnifier somewhere central
