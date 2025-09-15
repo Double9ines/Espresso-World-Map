@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Espresso World Map</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-7Ih0jWzVt6jZ7b5bqz4wz5wR9V5z9zvZ9z9z9z9z9z9z9z9z9z9z9z9z9z9z" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-o9N1j7kGZb+3kG8a9kaGb0G3FScYxwZ1Z8RxtwGv7Xk=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <style>
         * {
             margin: 0;
@@ -49,20 +51,19 @@
             border: 1px solid #c9b29b;
             box-shadow: 0 8px 24px rgba(0,0,0,0.3);
             border-radius: 12px;
-            padding: 12px 14px;
+            padding: 8px 10px;
             display: flex;
-            gap: 10px;
+            gap: 8px;
             align-items: center;
             z-index: 3;
         }
-        .top-menu .title { color: #6b4a2d; font-weight: 600; margin-right: 6px; }
-        .top-menu select { background: #fff; border: 1px solid #c9b29b; color: #6b4a2d; border-radius: 8px; padding: 8px 10px; min-width: 220px; outline: none; }
-        .top-menu .badge { background: #6b4a2d; color: #fff; border-radius: 16px; padding: 4px 8px; font-size: 0.75rem; margin-left: 4px; }
+        .top-menu .title { color: #6b4a2d; font-weight: 600; margin-right: 4px; font-size: 0.9rem; }
+        .top-menu select { background: #fff; border: 1px solid #c9b29b; color: #6b4a2d; border-radius: 8px; padding: 6px 8px; min-width: 160px; outline: none; font-size: 0.9rem; }
+        .top-menu .badge { background: #6b4a2d; color: #fff; border-radius: 16px; padding: 3px 6px; font-size: 0.7rem; margin-left: 4px; }
         .top-menu .badge.past { background:#b58257; }
         
-        .map-container { width: 100%; height: 560px; background: rgba(20,15,15,0.55); border-radius: 12px; position: relative; overflow: hidden; border: 1px solid #3a2c2c; box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
-        .map-surface { position: absolute; inset: 0; background: #1a1a1a; }
-        .map-image { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background-image: url('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg'); background-size: cover; background-position: center; filter: contrast(1.05) saturate(0.95) brightness(0.95); }
+        .map-container { width: 100%; height: 560px; background: rgba(20,15,15,0.55); border-radius: 12px; position: relative; overflow: hidden; border: 1px solid #3a2c2c; box-shadow: 0 12px 40px rgba(0,0,0,0.5); margin-top: 8px; }
+        #leafletMap { position: absolute; inset: 0; }
         .map-brand { position: absolute; left: 14px; bottom: 12px; display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); z-index: 2; }
         .map-brand img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
         .map-brand span { color: #e0c8a9; font-weight: 600; letter-spacing: 0.5px; }
@@ -72,9 +73,9 @@
         .marker.upcoming .cup { color: #ffffff; }
         .marker.past .cup { color: #d6c7b8; opacity: 0.9; }
         
-        .magnifier { position: absolute; width: 140px; height: 140px; border-radius: 50%; box-shadow: 0 0 0 6px rgba(255,255,255,0.85), inset 0 0 20px rgba(0,0,0,0.35), 0 8px 20px rgba(0,0,0,0.4); overflow: hidden; z-index: 3; transform: translate(-50%, -50%); transition: transform 0.25s ease; }
-        .magnifier .glass { position: absolute; inset: 0; background-image: url('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg'); background-size: cover; background-position: center; filter: saturate(1.05) brightness(1.1); transform: scale(1.6); }
-        .hand { position: absolute; width: 180px; right: -40px; bottom: -20px; z-index: 2; opacity: 0.9; pointer-events: none; }
+        .magnifier { position: absolute; width: 140px; height: 140px; border-radius: 50%; box-shadow: 0 0 0 6px rgba(255,255,255,0.85), inset 0 0 20px rgba(0,0,0,0.35), 0 8px 20px rgba(0,0,0,0.4); z-index: 400; transform: translate(-50%, -50%); transition: left 0.25s ease, top 0.25s ease; pointer-events: none; }
+        .magnifier::after { content: ''; position: absolute; inset: 0; border-radius: 50%; box-shadow: inset 0 0 0 2px rgba(0,0,0,0.25); }
+        .hand { position: absolute; width: 160px; right: -30px; bottom: -16px; z-index: 401; opacity: 0.95; pointer-events: none; }
         .hand img { width: 100%; height: auto; filter: drop-shadow(0 6px 10px rgba(0,0,0,0.5)); }
         
         .events-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; width: 100%; margin-top: 24px; margin-bottom: 40px; }
@@ -122,14 +123,10 @@
         </div>
 
         <div class="map-container" id="map">
-            <div class="map-surface">
-                <div class="map-image" id="mapImage"></div>
-                <div class="magnifier" id="magnifier">
-                    <div class="glass" id="magnifierGlass"></div>
-                    <div class="hand"><img src="https://cdn-icons-png.flaticon.com/512/4360/4360154.png" alt="hand holding"></div>
-                </div>
-                <div class="map-brand"><img src="espresso.png" alt="Espresso logo"><span>Espresso</span></div>
-            </div>
+            <div id="leafletMap"></div>
+            <div class="magnifier" id="magnifier"></div>
+            <div class="hand"><img src="https://cdn-icons-png.flaticon.com/512/4360/4360154.png" alt="hand holding"></div>
+            <div class="map-brand"><img src="espresso.png" alt="Espresso logo"><span>Espresso</span></div>
         </div>
 
         <div class="events-list">
@@ -216,10 +213,17 @@
             { name: 'Brussels, Belgium', lat: 50.8503, lng: 4.3517, type: 'past', date: 'December 2021', desc: 'Our European capital event focused on policy and technology intersections.' }
         ];
 
-        const map = document.getElementById('map');
-        const mapImage = document.getElementById('mapImage');
+        const mapContainer = document.getElementById('map');
+        const leafletMapEl = document.getElementById('leafletMap');
         const magnifier = document.getElementById('magnifier');
-        const glass = document.getElementById('magnifierGlass');
+
+        // Initialize Leaflet map (Google-like UX)
+        const map = L.map('leafletMap', { zoomControl: true, attributionControl: false });
+        // Free tiles (Carto light) – clean and clear; can be swapped later
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19
+        }).addTo(map);
+        map.setView([20, 0], 2);
 
         // Populate dropdowns
         const futureSelect = document.getElementById('futureSelect');
@@ -235,61 +239,38 @@
         futureSelect.addEventListener('change', onSelect);
         pastSelect.addEventListener('change', onSelect);
 
-        // Create markers
+        // Create markers as Leaflet markers with custom divIcons
         const markers = [];
-        function project(lat, lng) {
-            const rect = map.getBoundingClientRect();
-            const w = rect.width; const h = rect.height;
-            const x = (lng + 180) / 360 * w;
-            const y = (90 - lat) / 180 * h;
-            return { x, y };
-        }
         function createMarker(event) {
-            const m = document.createElement('div');
-            m.className = `marker ${event.type}`;
-            m.innerHTML = `<span class="cup">&#9749;</span>`;
-            map.appendChild(m);
-            markers.push({ el: m, event });
-            positionMarker(m, event.lat, event.lng);
-        }
-        function positionMarker(el, lat, lng) {
-            const p = project(lat, lng);
-            el.style.left = p.x + 'px';
-            el.style.top = p.y + 'px';
+            const icon = L.divIcon({
+                html: `<div class="marker ${event.type}"><span class="cup">&#9749;</span></div>`,
+                className: '',
+                iconSize: [20,20],
+                iconAnchor: [10, 18]
+            });
+            const m = L.marker([event.lat, event.lng], { icon }).addTo(map);
+            m.bindPopup(`<strong>${event.name}</strong><br>${event.date} • ${event.type}<br>${event.desc}`);
+            markers.push({ lf: m, event });
         }
         events.forEach(createMarker);
 
         // Move magnifier to a lat/lng
         function moveMagnifierTo(lat, lng) {
-            const rect = map.getBoundingClientRect();
-            const w = rect.width; const h = rect.height;
-            const p = project(lat, lng);
-            const mx = p.x; const my = p.y;
-            const duration = 800; const start = performance.now();
-            const startPos = magnifier.getBoundingClientRect();
-            const startX = startPos.left - rect.left + magnifier.offsetWidth/2;
-            const startY = startPos.top - rect.top + magnifier.offsetHeight/2;
-            function step(now) {
-                const t = Math.min(1, (now - start) / duration);
-                const ease = t<0.5?2*t*t:-1+(4-2*t)*t;
-                const x = startX + (mx - startX) * ease;
-                const y = startY + (my - startY) * ease;
-                setMagnifierPosition(x, y, w, h);
-                if (t < 1) requestAnimationFrame(step);
-            }
-            requestAnimationFrame(step);
-        }
-        function setMagnifierPosition(cx, cy, w, h) {
-            magnifier.style.left = cx + 'px';
-            magnifier.style.top = cy + 'px';
-            const bx = -((cx / w) * 100) + 50;
-            const by = -((cy / h) * 100) + 50;
-            glass.style.backgroundPosition = `${50 - bx}% ${50 - by}%`;
+            // Fly to street level
+            map.flyTo([lat, lng], 14, { duration: 1.0 });
+            // Position magnifier over the projected point
+            setTimeout(() => {
+                const point = map.latLngToContainerPoint([lat, lng]);
+                magnifier.style.left = point.x + 'px';
+                magnifier.style.top = point.y + 'px';
+            }, 400);
         }
 
         // Initialize magnifier somewhere central
         setTimeout(() => {
-            const rect = map.getBoundingClientRect(); setMagnifierPosition(rect.width*0.6, rect.height*0.5, rect.width, rect.height);
+            const center = map.getSize();
+            magnifier.style.left = (center.x*0.6) + 'px';
+            magnifier.style.top = (center.y*0.5) + 'px';
         }, 0);
 
         function onSelect(e) {
@@ -297,21 +278,20 @@
             const [latStr, lngStr] = value.split(',');
             const lat = parseFloat(latStr), lng = parseFloat(lngStr);
             moveMagnifierTo(lat, lng);
-            const p = project(lat, lng);
+            const point = map.latLngToContainerPoint([lat, lng]);
             const m = document.createElement('div');
-            m.style.position='absolute'; m.style.left=p.x+'px'; m.style.top=p.y+'px'; m.style.transform='translate(-50%, -50%)';
+            m.style.position='absolute'; m.style.left=point.x+'px'; m.style.top=point.y+'px'; m.style.transform='translate(-50%, -50%)';
             m.style.width='14px'; m.style.height='14px'; m.style.border='2px solid #e0c8a9'; m.style.borderRadius='50%'; m.style.boxShadow='0 0 12px rgba(224,200,169,0.7)'; m.style.opacity='0.9';
-            map.appendChild(m);
+            mapContainer.appendChild(m);
             setTimeout(()=>{ m.style.transition='all 0.6s ease'; m.style.opacity='0'; m.style.transform='translate(-50%, -50%) scale(2)'; }, 20);
             setTimeout(()=>{ m.remove(); }, 800);
         }
 
         // On resize, reposition markers and magnifier
-        window.addEventListener('resize', () => {
-            const rect = map.getBoundingClientRect();
-            markers.forEach(({el, event}) => positionMarker(el, event.lat, event.lng));
-            const mgRect = magnifier.getBoundingClientRect();
-            setMagnifierPosition(mgRect.left - rect.left + mgRect.width/2, mgRect.top - rect.top + mgRect.height/2, rect.width, rect.height);
+        window.addEventListener('resize', () => { map.invalidateSize(); });
+        map.on('move', () => {
+            // keep magnifier centered above the last set position visually during move
+            // no-op; Leaflet updates tiles beneath
         });
     </script>
 </body>
