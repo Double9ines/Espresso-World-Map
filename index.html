@@ -82,14 +82,14 @@
         .hand { position: absolute; width: 160px; right: -30px; bottom: -16px; z-index: 401; opacity: 0.95; pointer-events: none; }
         .hand img { width: 100%; height: auto; filter: drop-shadow(0 6px 10px rgba(0,0,0,0.5)); }
         
-        .events-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; width: 100%; margin-top: 24px; margin-bottom: 40px; }
-        .event-card { background: rgba(20, 15, 15, 0.6); border-radius: 10px; padding: 20px; border: 1px solid #3a2c2c; transition: transform 0.3s ease, box-shadow 0.3s ease; }
-        .event-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3); border-color: #b89f7e; }
-        .event-card.upcoming { border-left: 4px solid #e0c8a9; }
-        .event-card.past { border-left: 4px solid #7e6559; }
-        .event-location { font-size: 1.3rem; color: #e0c8a9; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
-        .event-date { color: #b89f7e; margin-bottom: 15px; font-style: italic; }
-        .event-desc { color: #d0b899; line-height: 1.5; }
+        .events-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; width: 100%; margin-top: 18px; margin-bottom: 16px; }
+        .event-item { background: rgba(20, 15, 15, 0.55); border: 1px solid #3a2c2c; color: #e0c8a9; border-radius: 10px; padding: 12px 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background .2s ease, border-color .2s ease, transform .2s ease; }
+        .event-item:hover { background: rgba(184,159,126,0.15); border-color: #b89f7e; transform: translateY(-2px); }
+        .event-item .tag { font-size: 0.7rem; background: rgba(184,159,126,0.25); border-radius: 12px; padding: 3px 8px; margin-left: auto; }
+        .event-item.active { background: rgba(224,200,169,0.18); border-color: #e0c8a9; }
+        .event-details { width: 100%; background: rgba(20,15,15,0.6); border: 1px solid #3a2c2c; border-radius: 10px; padding: 16px; color: #d0b899; display: none; }
+        .event-details h3 { color: #e0c8a9; margin-bottom: 6px; }
+        .event-details .date { color: #b89f7e; font-style: italic; margin-bottom: 10px; }
         
         footer { text-align: center; margin-top: auto; padding: 20px; color: #7e6559; width: 100%; }
         
@@ -139,70 +139,8 @@
             <div class="map-brand"><img src="espresso.png" alt="Espresso logo"><span>Espresso</span></div>
         </div>
 
-        <div class="events-list">
-            <div class="event-card upcoming">
-                <h3 class="event-location"><span class="pulse-effect"></span><i class="fas fa-flag"></i> Seoul, South Korea</h3>
-                <p class="event-date">October 2023</p>
-                <p class="event-desc">Join us for an exciting event in the heart of Seoul, where we'll explore the latest trends in technology and innovation.</p>
-                <span class="event-type">Upcoming</span>
-            </div>
-            
-            <div class="event-card upcoming">
-                <h3 class="event-location"><span class="pulse-effect"></span><i class="fas fa-flag"></i> Buenos Aires, Argentina</h3>
-                <p class="event-date">November 2023</p>
-                <p class="event-desc">Experience the vibrant culture of Buenos Aires while networking with industry leaders and innovators.</p>
-                <span class="event-type">Upcoming</span>
-            </div>
-            
-            <div class="event-card past">
-                <h3 class="event-location"><i class="fas fa-flag"></i> Denver, USA</h3>
-                <p class="event-date">June 2022</p>
-                <p class="event-desc">Our mountain-high event in Denver brought together thought leaders from across the industry.</p>
-                <span class="event-type">Past Event</span>
-            </div>
-            
-            <div class="event-card past">
-                <h3 class="event-location"><i class="fas fa-flag"></i> Berlin, Germany</h3>
-                <p class="event-date">May 2022</p>
-                <p class="event-desc">An unforgettable event in Europe's startup capital, focusing on innovation and collaboration.</p>
-                <span class="event-type">Past Event</span>
-            </div>
-            
-            <div class="event-card past">
-                <h3 class="event-location"><i class="fas fa-flag"></i> San Francisco, USA</h3>
-                <p class="event-date">April 2022</p>
-                <p class="event-desc">Our tech-focused event in the heart of Silicon Valley explored the future of digital innovation.</p>
-                <span class="event-type">Past Event</span>
-            </div>
-            
-            <div class="event-card past">
-                <h3 class="event-location"><i class="fas fa-flag"></i> New York, USA</h3>
-                <p class="event-date">March 2022</p>
-                <p class="event-desc">The New York event brought together finance and technology leaders for groundbreaking discussions.</p>
-                <span class="event-type">Past Event</span>
-            </div>
-            
-            <div class="event-card past">
-                <h3 class="event-location"><i class="fas fa-flag"></i> Cannes, France</h3>
-                <p class="event-date">February 2022</p>
-                <p class="event-desc">We hosted a special event during the famous festival season in the French Riviera.</p>
-                <span class="event-type">Past Event</span>
-            </div>
-            
-            <div class="event-card past">
-                <h3 class="event-location"><i class="fas fa-flag"></i> Bangkok, Thailand</h3>
-                <p class="event-date">January 2022</p>
-                <p class="event-desc">Our Southeast Asia event showcased emerging technologies in one of the region's most vibrant cities.</p>
-                <span class="event-type">Past Event</span>
-            </div>
-            
-            <div class="event-card past">
-                <h3 class="event-location"><i class="fas fa-flag"></i> Brussels, Belgium</h3>
-                <p class="event-date">December 2021</p>
-                <p class="event-desc">Our European capital event focused on policy and technology intersections.</p>
-                <span class="event-type">Past Event</span>
-            </div>
-        </div>
+        <div class="events-list" id="eventsList"></div>
+        <div class="event-details" id="eventDetails"></div>
     </div>
     
     <footer>
@@ -232,7 +170,8 @@
         const loadingEl = document.getElementById('mapLoading');
         const tileCandidates = [
             { url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opts:{ maxZoom: 18 } },
-            { url:'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', opts:{ maxZoom: 18 } }
+            { url:'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', opts:{ maxZoom: 18 } },
+            { url:'https://stamen-tiles.a.ssl.fastly.net/terrain/{z}/{x}/{y}.jpg', opts:{ maxZoom: 18 } }
         ];
         let tileIdx = 0; let tileLayer;
         function loadTiles() {
@@ -346,6 +285,23 @@
         map.on('move', () => {
             // keep magnifier centered above the last set position visually during move
             // no-op; Leaflet updates tiles beneath
+        });
+
+        // Build concise clickable event list
+        const listEl = document.getElementById('eventsList');
+        const detailsEl = document.getElementById('eventDetails');
+        events.forEach((e, idx) => {
+            const item = document.createElement('div');
+            item.className = 'event-item';
+            item.innerHTML = `<i class="fas fa-location-dot"></i><span>${e.name}</span><span class="tag">${e.type === 'upcoming' ? 'Upcoming' : 'Past'}</span>`;
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.event-item').forEach(i=>i.classList.remove('active'));
+                item.classList.add('active');
+                detailsEl.style.display = 'block';
+                detailsEl.innerHTML = `<h3>${e.name}</h3><div class="date">${e.date} • ${e.type}</div><div>${e.desc}</div>`;
+                moveMagnifierTo(e.lat, e.lng);
+            });
+            listEl.appendChild(item);
         });
     </script>
 </body>
