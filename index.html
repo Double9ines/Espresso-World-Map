@@ -6,6 +6,7 @@
     <title>Espresso World Map</title>
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-7Ih0jWzVt6jZ7b5bqz4wz5wR9V5z9zvZ9z9z9z9z9z9z9z9z9z9z9z9z9z9z" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         * {
             margin: 0;
@@ -230,6 +231,25 @@
                 box-shadow: 0 0 0 0 rgba(224, 200, 169, 0);
             }
         }
+        
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            pointer-events: none;
+            background: rgba(20, 15, 15, 0.95);
+            color: #e0c8a9;
+            border: 1px solid #3a2c2c;
+            border-radius: 8px;
+            padding: 10px 12px;
+            min-width: 220px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            transform: translate(-50%, -120%);
+            z-index: 10;
+            display: none;
+        }
+        .tooltip h4{ margin-bottom:6px; font-size:1rem; }
+        .tooltip .date{ color:#b89f7e; font-style:italic; margin-bottom:8px; }
+        .tooltip .desc{ color:#d0b899; font-size:0.95rem; }
     </style>
 </head>
 <body>
@@ -261,6 +281,7 @@
         <div class="map-container">
             <div id="globe"></div>
             <div class="loading" id="loading">Loading 3D Globe...</div>
+            <div class="tooltip" id="tooltip"></div>
         </div>
         
         <div class="events-list">
@@ -348,7 +369,7 @@
         ];
 
         // Initialize Three.js scene
-        let scene, camera, renderer, controls, globe;
+        let scene, camera, renderer, controls, globe, raycaster, mouse, markerData = [];
         
         function init() {
             // Create scene
@@ -369,6 +390,8 @@
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
             controls.rotateSpeed = 0.8;
+            controls.minDistance = 1.5;
+            controls.maxDistance = 5;
             
             // Add ambient light
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
@@ -398,6 +421,11 @@
             // Create Earth mesh
             globe = new THREE.Mesh(geometry, material);
             scene.add(globe);
+            
+            // Setup raycaster for clicks
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+            renderer.domElement.addEventListener('click', onMapClick);
             
             // Add markers for events
             events.forEach(event => {
@@ -437,6 +465,9 @@
             marker.lookAt(0, 0, 0);
             marker.rotateX(Math.PI / 2);
             
+            // Store meta for picking
+            marker.userData = { type, name, date, desc };
+            
             // Add a small plate under the cup
             const plateGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.01, 16);
             const plateMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
@@ -444,8 +475,13 @@
             plate.position.set(x, y - 0.03, z);
             plate.lookAt(0, 0, 0);
             
-            scene.add(marker);
-            scene.add(plate);
+            // Group to keep them together
+            const group = new THREE.Group();
+            group.add(marker);
+            group.add(plate);
+            group.userData = { type, name, date, desc };
+            scene.add(group);
+            markerData.push(group);
             
             // Add glow effect for upcoming events
             if (type === 'upcoming') {
@@ -458,13 +494,12 @@
                 
                 const glow = new THREE.Mesh(glowGeometry, glowMaterial);
                 glow.position.set(x, y, z);
-                scene.add(glow);
+                group.add(glow);
                 
                 // Animation for glow
                 function pulseGlow() {
-                    glow.scale.x = 1 + 0.2 * Math.sin(Date.now() * 0.002);
-                    glow.scale.y = 1 + 0.2 * Math.sin(Date.now() * 0.002);
-                    glow.scale.z = 1 + 0.2 * Math.sin(Date.now() * 0.002);
+                    const s = 1 + 0.2 * Math.sin(Date.now() * 0.002);
+                    glow.scale.set(s, s, s);
                     requestAnimationFrame(pulseGlow);
                 }
                 pulseGlow();
@@ -472,9 +507,10 @@
         }
         
         function onWindowResize() {
-            camera.aspect = document.getElementById('globe').offsetWidth / document.getElementById('globe').offsetHeight;
+            const el = document.getElementById('globe');
+            camera.aspect = el.offsetWidth / el.offsetHeight;
             camera.updateProjectionMatrix();
-            renderer.setSize(document.getElementById('globe').offsetWidth, document.getElementById('globe').offsetHeight);
+            renderer.setSize(el.offsetWidth, el.offsetHeight);
         }
         
         function animate() {
@@ -482,6 +518,36 @@
             controls.update();
             globe.rotation.y += 0.0005; // Slow rotation of the globe
             renderer.render(scene, camera);
+        }
+        
+        // Picking
+        function onMapClick(event) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(markerData, true);
+            if (intersects.length > 0) {
+                const obj = intersects[0].object;
+                const data = obj.userData && obj.userData.name ? obj.userData : obj.parent.userData;
+                if (!data) return;
+                showTooltip(event.clientX, event.clientY, data);
+            } else {
+                hideTooltip();
+            }
+        }
+        
+        function showTooltip(x, y, data) {
+            const tip = document.getElementById('tooltip');
+            tip.innerHTML = `<h4>${data.name}</h4><div class="date">${data.date} • ${data.type}</div><div class="desc">${data.desc}</div>`;
+            tip.style.left = x + 'px';
+            tip.style.top = y + 'px';
+            tip.style.display = 'block';
+        }
+        
+        function hideTooltip() {
+            const tip = document.getElementById('tooltip');
+            tip.style.display = 'none';
         }
         
         // Initialize the scene
