@@ -18,7 +18,7 @@
         }
         
         body {
-            background: url('https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?q=80&w=1920&auto=format&fit=crop') center/cover no-repeat fixed;
+            background: url('espresso-bg.jpg') center/cover no-repeat fixed;
             color: #e0c8a9;
             min-height: 100vh;
             display: flex;
@@ -67,6 +67,7 @@
         
         .map-container { width: 100%; height: 560px; background: rgba(20,15,15,0.55); border-radius: 12px; position: relative; overflow: hidden; border: 1px solid #3a2c2c; box-shadow: 0 12px 40px rgba(0,0,0,0.5); margin-top: 24px; }
         #leafletMap { position: absolute; inset: 0; }
+        .map-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.35); color: #e0c8a9; z-index: 500; font-weight: 600; letter-spacing: 0.5px; }
         .map-brand { position: absolute; left: 14px; bottom: 12px; display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); z-index: 2; }
         .map-brand img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
         .map-brand span { color: #e0c8a9; font-weight: 600; letter-spacing: 0.5px; }
@@ -133,6 +134,7 @@
 
         <div class="map-container" id="map">
             <div id="leafletMap"></div>
+            <div class="map-loading" id="mapLoading">Loading map…</div>
             <div class="magnifier" id="magnifier"></div>
             <div class="map-brand"><img src="espresso.png" alt="Espresso logo"><span>Espresso</span></div>
         </div>
@@ -227,10 +229,24 @@
 
         // Initialize Leaflet map (Google-like UX)
         const map = L.map('leafletMap', { zoomControl: true, attributionControl: false });
-        // Free tiles (Carto light) – clean and clear; can be swapped later
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            maxZoom: 19
-        }).addTo(map);
+        const loadingEl = document.getElementById('mapLoading');
+        const tileCandidates = [
+            { url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opts:{ maxZoom: 19, crossOrigin:true } },
+            { url:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', opts:{ maxZoom: 19 } }
+        ];
+        let tileIdx = 0; let tileLayer;
+        function loadTiles() {
+            if (tileLayer) { map.removeLayer(tileLayer); }
+            const t = tileCandidates[tileIdx];
+            tileLayer = L.tileLayer(t.url, t.opts);
+            tileLayer.on('load', () => { loadingEl.style.display = 'none'; });
+            tileLayer.on('tileerror', () => {
+                tileIdx++;
+                if (tileIdx < tileCandidates.length) loadTiles();
+            });
+            tileLayer.addTo(map);
+        }
+        loadTiles();
         map.setView([20, 0], 2);
         // Geocoder (search box)
         L.Control.geocoder({ defaultMarkGeocode: false }).on('markgeocode', function(e) {
