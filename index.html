@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Espresso World Map</title>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-7Ih0jWzVt6jZ7b5bqz4wz5wR9V5z9zvZ9z9z9z9z9z9z9z9z9z9z9z9z9z9z" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         * {
@@ -36,22 +34,12 @@
             z-index: 0;
         }
         
-        .container { z-index: 1; }
+        .container { z-index: 1; max-width: 1200px; width: 100%; display: flex; flex-direction: column; align-items: center; }
         
-        .brand-logo {
-            position: fixed;
-            left: 20px;
-            bottom: 20px;
-            width: 72px;
-            height: 72px;
-            border-radius: 12px;
-            background: rgba(0,0,0,0.2);
-            padding: 6px;
-            backdrop-filter: blur(2px);
-            border: 1px solid rgba(255,255,255,0.08);
-            z-index: 2;
-        }
-        .brand-logo img { width: 100%; height: 100%; object-fit: contain; }
+        header { text-align: center; margin-bottom: 18px; width: 100%; }
+        
+        h1 { font-size: 2.6rem; margin-bottom: 10px; color: #e0c8a9; text-shadow: 0 0 10px rgba(224, 200, 169, 0.5); letter-spacing: 2px; }
+        .subtitle { font-size: 1.1rem; color: #b89f7e; max-width: 700px; margin: 0 auto 12px; }
         
         .top-menu {
             position: fixed;
@@ -65,241 +53,56 @@
             display: flex;
             gap: 10px;
             align-items: center;
-            z-index: 2;
+            z-index: 3;
         }
-        .top-menu .title {
-            color: #6b4a2d;
-            font-weight: 600;
-            margin-right: 6px;
-        }
-        .top-menu select {
-            background: #fff;
-            border: 1px solid #c9b29b;
-            color: #6b4a2d;
-            border-radius: 8px;
-            padding: 8px 10px;
-            min-width: 220px;
-            outline: none;
-        }
-        .top-menu .badge {
-            background: #6b4a2d;
-            color: #fff;
-            border-radius: 16px;
-            padding: 4px 8px;
-            font-size: 0.75rem;
-            margin-left: 4px;
-        }
+        .top-menu .title { color: #6b4a2d; font-weight: 600; margin-right: 6px; }
+        .top-menu select { background: #fff; border: 1px solid #c9b29b; color: #6b4a2d; border-radius: 8px; padding: 8px 10px; min-width: 220px; outline: none; }
+        .top-menu .badge { background: #6b4a2d; color: #fff; border-radius: 16px; padding: 4px 8px; font-size: 0.75rem; margin-left: 4px; }
+        .top-menu .badge.past { background:#b58257; }
         
-        .map-container {
-            width: 100%;
-            height: 560px;
-            background: rgba(20, 15, 15, 0.55);
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
-            margin-bottom: 30px;
-            border: 1px solid #3a2c2c;
-            position: relative;
-        }
+        .map-container { width: 100%; height: 560px; background: rgba(20,15,15,0.55); border-radius: 12px; position: relative; overflow: hidden; border: 1px solid #3a2c2c; box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
+        .map-surface { position: absolute; inset: 0; background: #1a1a1a; }
+        .map-image { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background-image: url('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg'); background-size: cover; background-position: center; filter: contrast(1.05) saturate(0.95) brightness(0.95); }
+        .map-brand { position: absolute; left: 14px; bottom: 12px; display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); z-index: 2; }
+        .map-brand img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
+        .map-brand span { color: #e0c8a9; font-weight: 600; letter-spacing: 0.5px; }
         
-        #globe {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            z-index: 1;
-        }
+        .marker { position: absolute; width: 20px; height: 20px; transform: translate(-50%, -100%); z-index: 2; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); pointer-events: none; }
+        .marker .cup { color: #eae5dd; font-size: 18px; }
+        .marker.upcoming .cup { color: #ffffff; }
+        .marker.past .cup { color: #d6c7b8; opacity: 0.9; }
         
-        .desk-shadow {
-            position: absolute;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            height: 120px;
-            background: linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0));
-            z-index: 0;
-            pointer-events: none;
-        }
+        .magnifier { position: absolute; width: 140px; height: 140px; border-radius: 50%; box-shadow: 0 0 0 6px rgba(255,255,255,0.85), inset 0 0 20px rgba(0,0,0,0.35), 0 8px 20px rgba(0,0,0,0.4); overflow: hidden; z-index: 3; transform: translate(-50%, -50%); transition: transform 0.25s ease; }
+        .magnifier .glass { position: absolute; inset: 0; background-image: url('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg'); background-size: cover; background-position: center; filter: saturate(1.05) brightness(1.1); transform: scale(1.6); }
+        .hand { position: absolute; width: 180px; right: -40px; bottom: -20px; z-index: 2; opacity: 0.9; pointer-events: none; }
+        .hand img { width: 100%; height: auto; filter: drop-shadow(0 6px 10px rgba(0,0,0,0.5)); }
         
-        .loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #e0c8a9;
-            font-size: 1.2rem;
-            text-align: center;
-        }
+        .events-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; width: 100%; margin-top: 24px; margin-bottom: 40px; }
+        .event-card { background: rgba(20, 15, 15, 0.6); border-radius: 10px; padding: 20px; border: 1px solid #3a2c2c; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .event-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3); border-color: #b89f7e; }
+        .event-card.upcoming { border-left: 4px solid #e0c8a9; }
+        .event-card.past { border-left: 4px solid #7e6559; }
+        .event-location { font-size: 1.3rem; color: #e0c8a9; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+        .event-date { color: #b89f7e; margin-bottom: 15px; font-style: italic; }
+        .event-desc { color: #d0b899; line-height: 1.5; }
         
-        .controls {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 25px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        
-        .filter-btn {
-            background: rgba(58, 44, 44, 0.7);
-            color: #e0c8a9;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 500;
-        }
-        
-        .filter-btn:hover {
-            background: rgba(184, 159, 126, 0.2);
-            transform: translateY(-2px);
-        }
-        
-        .filter-btn.active {
-            background: rgba(224, 200, 169, 0.2);
-            box-shadow: 0 0 12px rgba(224, 200, 169, 0.3);
-        }
-        
-        .events-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-            width: 100%;
-            margin-bottom: 40px;
-        }
-        
-        .event-card {
-            background: rgba(20, 15, 15, 0.6);
-            border-radius: 10px;
-            padding: 20px;
-            border: 1px solid #3a2c2c;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .event-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
-            border-color: #b89f7e;
-        }
-        
-        .event-card.upcoming {
-            border-left: 4px solid #e0c8a9;
-        }
-        
-        .event-card.past {
-            border-left: 4px solid #7e6559;
-        }
-        
-        .event-location {
-            font-size: 1.3rem;
-            color: #e0c8a9;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .event-date {
-            color: #b89f7e;
-            margin-bottom: 15px;
-            font-style: italic;
-        }
-        
-        .event-desc {
-            color: #d0b899;
-            line-height: 1.5;
-        }
-        
-        .event-type {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            margin-top: 15px;
-            background: rgba(184, 159, 126, 0.2);
-        }
-        
-        footer {
-            text-align: center;
-            margin-top: auto;
-            padding: 20px;
-            color: #7e6559;
-            width: 100%;
-        }
+        footer { text-align: center; margin-top: auto; padding: 20px; color: #7e6559; width: 100%; }
         
         @media (max-width: 768px) {
-            h1 {
-                font-size: 2.2rem;
-            }
-            
-            .map-container {
-                height: 400px;
-            }
-            
-            .events-list {
-                grid-template-columns: 1fr;
-            }
+            h1 { font-size: 2.2rem; }
+            .map-container { height: 420px; }
+            .magnifier { width: 120px; height: 120px; }
+            .hand { width: 150px; right: -30px; bottom: -16px; }
         }
-        
-        .pulse-effect {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #e0c8a9;
-            box-shadow: 0 0 0 rgba(224, 200, 169, 0.4);
-            animation: pulse 2s infinite;
-            margin-right: 5px;
-        }
-        
-        @keyframes pulse {
-            0% {
-                box-shadow: 0 0 0 0 rgba(224, 200, 169, 0.7);
-            }
-            70% {
-                box-shadow: 0 0 0 10px rgba(224, 200, 169, 0);
-            }
-            100% {
-                box-shadow: 0 0 0 0 rgba(224, 200, 169, 0);
-            }
-        }
-        
-        /* Tooltip */
-        .tooltip {
-            position: absolute;
-            pointer-events: none;
-            background: rgba(20, 15, 15, 0.95);
-            color: #e0c8a9;
-            border: 1px solid #3a2c2c;
-            border-radius: 8px;
-            padding: 10px 12px;
-            min-width: 220px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-            transform: translate(-50%, -120%);
-            z-index: 10;
-            display: none;
-        }
-        .tooltip h4{ margin-bottom:6px; font-size:1rem; }
-        .tooltip .date{ color:#b89f7e; font-style:italic; margin-bottom:8px; }
-        .tooltip .desc{ color:#d0b899; font-size:0.95rem; }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>Espresso World Map</h1>
-            <p class="subtitle">Explore where we've hosted events and where we're heading next on our global journey</p>
-            
-            <div class="instructions">
-                <p>✨ <strong>Interact with the 3D Globe:</strong></p>
-                <p>• Drag to rotate the globe in any direction</p>
-                <p>• Scroll to zoom in and out</p>
-                <p>• Click on espresso cup markers for event details</p>
-            </div>
+            <p class="subtitle">Pick a destination from the menus — watch the magnifier find it.</p>
         </header>
-        
+
         <div class="top-menu">
             <span class="title"><i class="fas fa-mug-hot"></i> Events</span>
             <div>
@@ -314,29 +117,21 @@
                 <select id="pastSelect">
                     <option value="">Past events...</option>
                 </select>
-                <span class="badge" style="background:#b58257;">Past</span>
+                <span class="badge past">Past</span>
             </div>
         </div>
-        
-        <div class="controls">
-            <button class="filter-btn active" data-filter="all">
-                <i class="fas fa-globe-americas"></i> All Events
-            </button>
-            <button class="filter-btn" data-filter="upcoming">
-                <i class="fas fa-calendar-plus"></i> Upcoming Events
-            </button>
-            <button class="filter-btn" data-filter="past">
-                <i class="fas fa-history"></i> Past Events
-            </button>
+
+        <div class="map-container" id="map">
+            <div class="map-surface">
+                <div class="map-image" id="mapImage"></div>
+                <div class="magnifier" id="magnifier">
+                    <div class="glass" id="magnifierGlass"></div>
+                    <div class="hand"><img src="https://cdn-icons-png.flaticon.com/512/4360/4360154.png" alt="hand holding"></div>
+                </div>
+                <div class="map-brand"><img src="espresso.png" alt="Espresso logo"><span>Espresso</span></div>
+            </div>
         </div>
-        
-        <div class="map-container">
-            <div id="globe"></div>
-            <div class="loading" id="loading">Loading 3D Globe...</div>
-            <div class="tooltip" id="tooltip"></div>
-            <div class="desk-shadow"></div>
-        </div>
-        
+
         <div class="events-list">
             <div class="event-card upcoming">
                 <h3 class="event-location"><span class="pulse-effect"></span><i class="fas fa-flag"></i> Seoul, South Korea</h3>
@@ -407,10 +202,6 @@
         <p>Espresso World Map | Interactive Event Tracker</p>
     </footer>
 
-    <div class="brand-logo">
-        <img src="espresso-logo.png" alt="Espresso logo" />
-    </div>
-
     <script>
         // Event data with coordinates
         const events = [
@@ -425,291 +216,102 @@
             { name: 'Brussels, Belgium', lat: 50.8503, lng: 4.3517, type: 'past', date: 'December 2021', desc: 'Our European capital event focused on policy and technology intersections.' }
         ];
 
-        // Initialize Three.js scene
-        let scene, camera, renderer, controls, globe, raycaster, mouse, markerData = [], desk;
-        
-        function init() {
-            // Create scene
-            scene = new THREE.Scene();
-            
-            // Create camera
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 1.35, 2.7);
-            
-            // Create renderer
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(document.getElementById('globe').offsetWidth, document.getElementById('globe').offsetHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            document.getElementById('globe').appendChild(renderer.domElement);
-            
-            // Add controls
-            controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.08;
-            controls.rotateSpeed = 0.6;
-            controls.minDistance = 1.8;
-            controls.maxDistance = 6;
-            controls.enablePan = false;
-            // Horizontal-only rotation
-            controls.minPolarAngle = Math.PI / 2;
-            controls.maxPolarAngle = Math.PI / 2;
-            
-            // Lights
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-            scene.add(ambientLight);
+        const map = document.getElementById('map');
+        const mapImage = document.getElementById('mapImage');
+        const magnifier = document.getElementById('magnifier');
+        const glass = document.getElementById('magnifierGlass');
 
-            const spot = new THREE.SpotLight(0xffffff, 1.1, 20, Math.PI/7, 0.3, 1);
-            spot.position.set(2.5, 4, 2.5);
-            spot.castShadow = true;
-            scene.add(spot);
-            
-            const warmLight = new THREE.DirectionalLight(0xfff0d5, 0.4);
-            warmLight.position.set(-3, 2, -2);
-            scene.add(warmLight);
-            
-            // Earth
-            const geometry = new THREE.SphereGeometry(1, 64, 64);
-            const textureLoader = new THREE.TextureLoader();
-            const earthTexture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg', () => {
-                document.getElementById('loading').style.display = 'none';
-            });
-            const material = new THREE.MeshPhongMaterial({
-                map: earthTexture,
-                specular: new THREE.Color(0x333333),
-                shininess: 5
-            });
-            globe = new THREE.Mesh(geometry, material);
-            globe.castShadow = true;
-            globe.receiveShadow = false;
-            globe.position.y = 1.05;
-            scene.add(globe);
-            
-            // Wooden desk plane
-            const woodTex = textureLoader.load('https://images.unsplash.com/photo-1519710164239-da123dc03ef4?q=80&w=1600&auto=format&fit=crop');
-            woodTex.wrapS = woodTex.wrapT = THREE.RepeatWrapping;
-            woodTex.repeat.set(2.5, 2.5);
-            const deskMat = new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.8, metalness: 0.05 });
-            const deskGeom = new THREE.CylinderGeometry(2.8, 2.8, 0.2, 64);
-            desk = new THREE.Mesh(deskGeom, deskMat);
-            desk.receiveShadow = true;
-            desk.position.y = 0.0;
-            scene.add(desk);
+        // Populate dropdowns
+        const futureSelect = document.getElementById('futureSelect');
+        const pastSelect = document.getElementById('pastSelect');
+        events.filter(e => e.type === 'upcoming').forEach(e => {
+            const opt = document.createElement('option');
+            opt.value = `${e.lat},${e.lng}`; opt.textContent = `${e.name} — ${e.date}`; futureSelect.appendChild(opt);
+        });
+        events.filter(e => e.type === 'past').forEach(e => {
+            const opt = document.createElement('option');
+            opt.value = `${e.lat},${e.lng}`; opt.textContent = `${e.name} — ${e.date}`; pastSelect.appendChild(opt);
+        });
+        futureSelect.addEventListener('change', onSelect);
+        pastSelect.addEventListener('change', onSelect);
 
-            // Small pedestal under globe
-            const pedMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2d, roughness: 0.7 });
-            const ped = new THREE.CylinderGeometry(0.35, 0.5, 0.25, 32);
-            const pedestal = new THREE.Mesh(ped, pedMat);
-            pedestal.position.y = 0.6;
-            pedestal.castShadow = true;
-            pedestal.receiveShadow = true;
-            scene.add(pedestal);
-            
-            // Raycaster
-            raycaster = new THREE.Raycaster();
-            mouse = new THREE.Vector2();
-            renderer.domElement.addEventListener('click', onMapClick);
-            
-            // Markers
-            events.forEach(event => {
-                addCoffeeCup(event.lat, event.lng, event.type, event.name, event.date, event.desc);
-            });
-            
-            // Resize
-            window.addEventListener('resize', onWindowResize);
-            
-            // Dropdowns
-            populateDropdowns();
-            document.getElementById('futureSelect').addEventListener('change', onSelectChange);
-            document.getElementById('pastSelect').addEventListener('change', onSelectChange);
-            
-            // Animate
-            animate();
+        // Create markers
+        const markers = [];
+        function project(lat, lng) {
+            const rect = map.getBoundingClientRect();
+            const w = rect.width; const h = rect.height;
+            const x = (lng + 180) / 360 * w;
+            const y = (90 - lat) / 180 * h;
+            return { x, y };
         }
-        
-        function addCoffeeCup(lat, lng, type, name, date, desc) {
-            const phi = (90 - lat) * (Math.PI / 180);
-            const theta = (lng + 180) * (Math.PI / 180);
-            const radius = 1.04;
-            const x = -(radius * Math.sin(phi) * Math.cos(theta));
-            const y = radius * Math.cos(phi) + 0.02;
-            const z = radius * Math.sin(phi) * Math.sin(theta);
-            
-            const group = new THREE.Group();
-            group.position.set(x, y, z);
-            group.lookAt(0, 1.05, 0); // look at globe center elevated
-            group.rotateX(Math.PI / 2);
-            group.userData = { type, name, date, desc, lat, lng };
-            
-            // Saucer
-            const saucer = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.055, 0.07, 0.01, 24),
-                new THREE.MeshPhongMaterial({ color: 0xf5f1ea, shininess: 30 })
-            );
-            saucer.castShadow = true;
-            saucer.receiveShadow = true;
-            saucer.position.y = -0.03;
-            group.add(saucer);
-            
-            // Cup body
-            const cup = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.03, 0.032, 0.06, 24, 1, false),
-                new THREE.MeshPhongMaterial({ color: type === 'upcoming' ? 0xffffff : 0xe8dfd4, shininess: 80 })
-            );
-            cup.castShadow = true;
-            cup.receiveShadow = true;
-            group.add(cup);
-            
-            // Coffee surface
-            const coffee = new THREE.Mesh(
-                new THREE.CircleGeometry(0.028, 24),
-                new THREE.MeshStandardMaterial({ color: 0x4b2e19, metalness: 0.05, roughness: 0.5 })
-            );
-            coffee.rotation.x = -Math.PI/2;
-            coffee.position.y = 0.03;
-            group.add(coffee);
-            
-            // Handle
-            const handle = new THREE.Mesh(
-                new THREE.TorusGeometry(0.022, 0.006, 12, 24),
-                new THREE.MeshPhongMaterial({ color: type === 'upcoming' ? 0xffffff : 0xe8dfd4, shininess: 80 })
-            );
-            handle.position.set(0.045, 0, 0);
-            handle.rotation.y = Math.PI/2;
-            group.add(handle);
-            
-            scene.add(group);
-            markerData.push(group);
-            
-            // Subtle glow for upcoming
-            if (type === 'upcoming') {
-                const glow = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), new THREE.MeshBasicMaterial({ color: 0xffc879, transparent: true, opacity: 0.35 }));
-                glow.position.set(0, 0, 0);
-                group.add(glow);
-            }
+        function createMarker(event) {
+            const m = document.createElement('div');
+            m.className = `marker ${event.type}`;
+            m.innerHTML = `<span class="cup">&#9749;</span>`;
+            map.appendChild(m);
+            markers.push({ el: m, event });
+            positionMarker(m, event.lat, event.lng);
         }
-        
-        function onWindowResize() {
-            const el = document.getElementById('globe');
-            camera.aspect = el.offsetWidth / el.offsetHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(el.offsetWidth, el.offsetHeight);
+        function positionMarker(el, lat, lng) {
+            const p = project(lat, lng);
+            el.style.left = p.x + 'px';
+            el.style.top = p.y + 'px';
         }
-        
-        function animate() {
-            requestAnimationFrame(animate);
-            controls.update();
-            globe.rotation.y += 0.0006;
-            renderer.render(scene, camera);
-        }
-        
-        function onMapClick(event) {
-            const rect = renderer.domElement.getBoundingClientRect();
-            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(markerData, true);
-            if (intersects.length > 0) {
-                const obj = intersects[0].object;
-                const data = obj.userData && obj.userData.name ? obj.userData : (obj.parent && obj.parent.userData);
-                if (!data) return;
-                showTooltip(event.clientX, event.clientY, data);
-            } else {
-                hideTooltip();
-            }
-        }
-        
-        function showTooltip(x, y, data) {
-            const tip = document.getElementById('tooltip');
-            tip.innerHTML = `<h4>${data.name}</h4><div class="date">${data.date} • ${data.type}</div><div class="desc">${data.desc}</div>`;
-            tip.style.left = x + 'px';
-            tip.style.top = y + 'px';
-            tip.style.display = 'block';
-        }
-        function hideTooltip() { document.getElementById('tooltip').style.display = 'none'; }
-        
-        // Dropdown helpers
-        function populateDropdowns() {
-            const futureSelect = document.getElementById('futureSelect');
-            const pastSelect = document.getElementById('pastSelect');
-            events.filter(e => e.type === 'upcoming').forEach((e, i) => {
-                const opt = document.createElement('option');
-                opt.value = `${e.lat},${e.lng}`;
-                opt.textContent = `${e.name} — ${e.date}`;
-                futureSelect.appendChild(opt);
-            });
-            events.filter(e => e.type === 'past').forEach((e, i) => {
-                const opt = document.createElement('option');
-                opt.value = `${e.lat},${e.lng}`;
-                opt.textContent = `${e.name} — ${e.date}`;
-                pastSelect.appendChild(opt);
-            });
-        }
-        
-        function onSelectChange(ev) {
-            const value = ev.target.value;
-            if (!value) return;
-            const [latStr, lngStr] = value.split(',');
-            focusOnLatLng(parseFloat(latStr), parseFloat(lngStr));
-        }
-        
-        function focusOnLatLng(lat, lng) {
-            // compute target spherical to cartesian on globe surface
-            const phi = (90 - lat) * (Math.PI / 180);
-            const theta = (lng + 180) * (Math.PI / 180);
-            const radius = 1.05;
-            const targetX = -(radius * Math.sin(phi) * Math.cos(theta));
-            const targetY = 1.05 + radius * Math.cos(phi) - 1.05; // around center y
-            const targetZ = radius * Math.sin(phi) * Math.sin(theta);
-            const target = new THREE.Vector3(targetX, 1.05 + (targetY), targetZ);
-            
-            // Smoothly rotate around Y so point faces camera horizontally
-            const desiredAzimuth = Math.atan2(targetZ, targetX) + Math.PI; // OrbitControls azimuth target
-            const startAzimuth = controls.getAzimuthalAngle();
-            const startPos = camera.position.clone();
-            const startTarget = controls.target.clone();
-            const endTarget = new THREE.Vector3(0, 1.05, 0);
-            const duration = 800;
-            const start = performance.now();
+        events.forEach(createMarker);
+
+        // Move magnifier to a lat/lng
+        function moveMagnifierTo(lat, lng) {
+            const rect = map.getBoundingClientRect();
+            const w = rect.width; const h = rect.height;
+            const p = project(lat, lng);
+            const mx = p.x; const my = p.y;
+            const duration = 800; const start = performance.now();
+            const startPos = magnifier.getBoundingClientRect();
+            const startX = startPos.left - rect.left + magnifier.offsetWidth/2;
+            const startY = startPos.top - rect.top + magnifier.offsetHeight/2;
             function step(now) {
                 const t = Math.min(1, (now - start) / duration);
-                const ease = t < 0.5 ? 2*t*t : -1 + (4 - 2*t) * t;
-                const az = startAzimuth + (desiredAzimuth - startAzimuth) * ease;
-                controls.setAzimuthalAngle(az);
-                controls.target.lerpVectors(startTarget, endTarget, ease);
-                camera.position.lerpVectors(startPos, new THREE.Vector3(0, 1.35, 2.4), ease);
-                controls.update();
+                const ease = t<0.5?2*t*t:-1+(4-2*t)*t;
+                const x = startX + (mx - startX) * ease;
+                const y = startY + (my - startY) * ease;
+                setMagnifierPosition(x, y, w, h);
                 if (t < 1) requestAnimationFrame(step);
             }
             requestAnimationFrame(step);
         }
-        
-        // Initialize the scene
-        init();
-        
-        // Filter functionality
-        document.querySelectorAll('.filter-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                // Update active button
-                document.querySelectorAll('.filter-btn').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                this.classList.add('active');
-                
-                const filter = this.getAttribute('data-filter');
-                
-                // Show/hide events based on filter
-                document.querySelectorAll('.event-card').forEach(card => {
-                    if (filter === 'all') {
-                        card.style.display = 'block';
-                    } else if (filter === 'upcoming') {
-                        card.style.display = card.classList.contains('upcoming') ? 'block' : 'none';
-                    } else if (filter === 'past') {
-                        card.style.display = card.classList.contains('past') ? 'block' : 'none';
-                    }
-                });
-            });
+        function setMagnifierPosition(cx, cy, w, h) {
+            magnifier.style.left = cx + 'px';
+            magnifier.style.top = cy + 'px';
+            const bx = -((cx / w) * 100) + 50;
+            const by = -((cy / h) * 100) + 50;
+            glass.style.backgroundPosition = `${50 - bx}% ${50 - by}%`;
+        }
+
+        // Initialize magnifier somewhere central
+        setTimeout(() => {
+            const rect = map.getBoundingClientRect(); setMagnifierPosition(rect.width*0.6, rect.height*0.5, rect.width, rect.height);
+        }, 0);
+
+        function onSelect(e) {
+            const value = e.target.value; if (!value) return;
+            const [latStr, lngStr] = value.split(',');
+            const lat = parseFloat(latStr), lng = parseFloat(lngStr);
+            moveMagnifierTo(lat, lng);
+            const p = project(lat, lng);
+            const m = document.createElement('div');
+            m.style.position='absolute'; m.style.left=p.x+'px'; m.style.top=p.y+'px'; m.style.transform='translate(-50%, -50%)';
+            m.style.width='14px'; m.style.height='14px'; m.style.border='2px solid #e0c8a9'; m.style.borderRadius='50%'; m.style.boxShadow='0 0 12px rgba(224,200,169,0.7)'; m.style.opacity='0.9';
+            map.appendChild(m);
+            setTimeout(()=>{ m.style.transition='all 0.6s ease'; m.style.opacity='0'; m.style.transform='translate(-50%, -50%) scale(2)'; }, 20);
+            setTimeout(()=>{ m.remove(); }, 800);
+        }
+
+        // On resize, reposition markers and magnifier
+        window.addEventListener('resize', () => {
+            const rect = map.getBoundingClientRect();
+            markers.forEach(({el, event}) => positionMarker(el, event.lat, event.lng));
+            const mgRect = magnifier.getBoundingClientRect();
+            setMagnifierPosition(mgRect.left - rect.left + mgRect.width/2, mgRect.top - rect.top + mgRect.height/2, rect.width, rect.height);
         });
     </script>
 </body>
